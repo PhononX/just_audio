@@ -14,6 +14,10 @@
 #define TREADMILL_SIZE 2
 #define ERROR_ABORT 10000000
 
+// The output device every player renders to on macOS (nil: system default). Main thread only, like
+// the rest of the plugin.
+static NSString *outputDeviceUID = nil;
+
 // TODO: Check for and report invalid state transitions.
 // TODO: Apply Apple's guidance on seeking: https://developer.apple.com/library/archive/qa/qa1820/_index.html
 @implementation AudioPlayer {
@@ -679,6 +683,7 @@
         if (@available(macOS 10.11, iOS 6.0, *)) {
             _player.allowsExternalPlayback = _allowsExternalPlayback;
         }
+        [self applyOutputDeviceUID:outputDeviceUID];
         [_player addObserver:self
                   forKeyPath:@"currentItem"
                      options:NSKeyValueObservingOptionNew
@@ -1339,6 +1344,20 @@
             }
         }];
     }
+}
+
++ (void)setOutputDeviceUID:(NSString *)uid {
+    outputDeviceUID = [uid copy];
+}
+
+- (void)applyOutputDeviceUID:(NSString *)uid {
+#if TARGET_OS_OSX
+    if (!_player) return;
+    if (@available(macOS 10.11, *)) {
+        // nil follows the system default output, as before this existed.
+        _player.audioOutputDeviceUniqueID = uid;
+    }
+#endif
 }
 
 - (void)dispose:(BOOL)calledFromDealloc {

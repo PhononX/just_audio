@@ -45,6 +45,17 @@
         [_players[playerId] dispose:NO];
         [_players setValue:nil forKey:playerId];
         result(@{});
+    } else if ([@"setOutputDevice" isEqualToString:call.method]) {
+        // macOS: route every player, current and future, to one output device. `uid` is a
+        // CoreAudio device UID, or null to follow the system default output. A no-op on iOS.
+        NSDictionary *request = (NSDictionary *)call.arguments;
+        id rawUid = request[@"uid"];
+        NSString *uid = [rawUid isKindOfClass:[NSString class]] ? (NSString *)rawUid : nil;
+        [AudioPlayer setOutputDeviceUID:uid];
+        for (NSString *playerId in _players) {
+            [_players[playerId] applyOutputDeviceUID:uid];
+        }
+        result(nil);
     } else if ([@"disposeAllPlayers" isEqualToString:call.method]) {
         for (NSString *playerId in _players) {
             [_players[playerId] dispose:NO];
